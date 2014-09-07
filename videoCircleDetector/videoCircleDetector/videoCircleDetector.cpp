@@ -266,7 +266,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				signPosY = signPosY - (maxYcoord - signPosY + 1);
 			}
 			
-			imgObjectUnknown = imgOrig(Rect(signPosX, signPosY, signWidth*1.4, signHeight*1.4));
+			imgObjectUnknown = imgOrig(Rect(signPosX, signPosY, signWidth*1.4/2, signHeight*1.4));
 			
 
 			// Convert to HSV
@@ -300,7 +300,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			
 				//if(waitKey(1000) == 27) break;
 				//imgObjectConfirmed = imgObjectUnknown(Rect(signPosXFocussed, signPosYFocussed, radiusFocussed+1, radiusFocussed+1));
-				resize(imgObjectUnknown,imgObjectConfirmed,Size(35,36));  // was size(40,40)
+				resize(imgObjectUnknown,imgObjectConfirmed,Size(35/2,36));  // was size(40,40)
 				
 				matchTemplate(imgObjectConfirmed, imgRefForty, confidenceForty, CV_TM_CCOEFF_NORMED);
 				matchTemplate(imgObjectConfirmed, imgRefSixty, confidenceSixty, CV_TM_CCOEFF_NORMED);
