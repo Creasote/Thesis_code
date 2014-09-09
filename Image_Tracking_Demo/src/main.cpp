@@ -120,6 +120,7 @@ int main(int argc, char *argv[])
 
 
 	// Create trackbars in "Control" window
+	/*
 	cvCreateTrackbar("LowH obj 1", "Control", &iLowH1, 179); //Hue (0 - 179)
 	cvCreateTrackbar("HighH obj 1", "Control", &iHighH1, 179);
 
@@ -128,9 +129,9 @@ int main(int argc, char *argv[])
 
 	cvCreateTrackbar("LowV obj 1", "Control", &iLowV1, 255); //Value (0 - 255)
 	cvCreateTrackbar("HighV obj 1", "Control", &iHighV1, 255);
-
+*/
 	cvCreateTrackbar("Show obj 1", "Control", &disp1Flag, 1);
-
+/*
 	cvCreateTrackbar("LowH obj 2", "Control", &iLowH2, 179); //Hue (0 - 179)
 	cvCreateTrackbar("HighH obj 2", "Control", &iHighH2, 179);
 
@@ -139,7 +140,7 @@ int main(int argc, char *argv[])
 
 	cvCreateTrackbar("LowV obj 2", "Control", &iLowV2, 255); //Value (0 - 255)
 	cvCreateTrackbar("HighV obj 2", "Control", &iHighV2, 255);
-
+*/
 	cvCreateTrackbar("Show obj 2", "Control", &disp2Flag, 1);
 
 	cvCreateTrackbar("Show combined", "Control", &dispCombFlag, 1);
@@ -168,10 +169,10 @@ int main(int argc, char *argv[])
 		double secondsElapsed = difftime(end, start);
 		double fps = frameCounter/secondsElapsed;
 
-		if (frameDisplayCounter == 1000){
+		if (frameDisplayCounter == 100){
 			cout<<fps<<" fps"<<endl;
 			frameDisplayCounter = 0;
-			return 0;
+			//return 0;
 		}
 
 		if (waitKey(50) == 27) // wait for X ms for the 'esc' key
@@ -213,17 +214,19 @@ int main(int argc, char *argv[])
 
 		else
 			{
-				//
+				// Operations on Img 1 & Img 2
 				// Perform a morphological open to remove small objects in the foreground
 				int size = morphOpenSize;
 				if (size > 0) { // only perform the operation of the size is nonzero
-					morphologyEx(thresh_img, thresh_img, CV_MOP_OPEN, getStructuringElement(MORPH_RECT, Size(size, size)));
+					morphologyEx(img1, img1, CV_MOP_OPEN, getStructuringElement(MORPH_RECT, Size(size, size)));
+					morphologyEx(img2, img2, CV_MOP_OPEN, getStructuringElement(MORPH_RECT, Size(size, size)));
 				}
 
 				// Perform a morphological close to fill in small holes in the foreground
 				size = morphCloseSize;
 				if (size > 0) { // only perform the operation of the size is nonzero
-					morphologyEx(thresh_img, thresh_img, CV_MOP_CLOSE, getStructuringElement(MORPH_RECT, Size(size, size)));
+					morphologyEx(img1, img1, CV_MOP_CLOSE, getStructuringElement(MORPH_RECT, Size(size, size)));
+					morphologyEx(img2, img2, CV_MOP_CLOSE, getStructuringElement(MORPH_RECT, Size(size, size)));
 				}
 			}
 
@@ -312,17 +315,16 @@ int main(int argc, char *argv[])
 
 			}
 
-
-				imshow("imgSrc", imgSrc);
-				if (disp1Flag == 1){
-					imshow("Obj 1", img1);
-				}
-				if (disp2Flag == 1){
-					imshow("Obj 2", img2);
-				}
-				if (dispCombFlag == 1){
-					imshow("Combined", imgBin);
-				}
+			imshow("imgSrc", imgSrc);
+			if (disp1Flag == 1){
+				imshow("Obj 1", img1);
+			}
+			if (disp2Flag == 1){
+				imshow("Obj 2", img2);
+			}
+			if (dispCombFlag == 1){
+				imshow("Combined", imgBin);
+			}
 		}
 
 	return 0;
