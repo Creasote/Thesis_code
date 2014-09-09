@@ -26,7 +26,7 @@ using namespace std;
 
 // Globals
 int jumpFrameFlag = 0;
-int SCALING = 1;
+int SCALING = 4;
 String allSignsTrainingFile = "allspeed.xml";
 CascadeClassifier allsignsClassifier;
 
@@ -114,7 +114,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				// Display the current frame
 				imshow("imgOrig", imgOrig);
 
-				if (frameDisplayCounter == 1000){
+				if (frameDisplayCounter == 100){
 					time(&end);
 					double secondsElapsed = difftime(end, start);
 					double fps = frameCounter/secondsElapsed;
@@ -137,13 +137,13 @@ int _tmain(int argc, _TCHAR* argv[])
 				vector<Rect> signs;
 
 				// Detect signs
-				allsignsClassifier.detectMultiScale(imgGray, signs, 1.1, 2, 0, Size(5,500));
+				allsignsClassifier.detectMultiScale(imgGray, signs, 1.1, 2, 0, Size(5,30));
 
 				for (size_t counter = 0; counter < signs.size(); counter++){
-					Point signLocation((signs[counter].x + signs[counter].width/2) * SCALING, (signs[counter].y + signs[counter].height/2) * SCALING);
-					int radius = cvRound(((signs[counter].width + signs[counter].height) * 0.25) * SCALING);
-					circle(imgOrig, signLocation, radius, Scalar(255,0,0), 3,8,0);
-					imshow("imgOrig", imgOrig);
+					Point signLocation((signs[counter].x + signs[counter].width/2), (signs[counter].y + signs[counter].height/2));
+					int radius = cvRound(((signs[counter].width + signs[counter].height) * 0.25));
+					circle(imgScaled, signLocation, radius, Scalar(255,0,0), 3,8,0);
+					imshow("imgScaled", imgScaled);
 					cout<<"Possible sign detection"<<endl;
 					Mat imgPossibleSign = imgGray(signs[counter]);
 					imshow("Possible sign", imgPossibleSign);
