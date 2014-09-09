@@ -1,0 +1,2 @@
+/home/pi/code/Image_Tracking_Demo/CMakeFiles/display.dir
+/home/pi/code/Image_Tracking_Demo/CMakeFiles/main.dir

@@ -1,0 +1,107 @@
+#include "PiCapture.h"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+
+using namespace cv;
+
+int main(int argc, char *argv[])
+{
+	// Allocate memory
+	Mat display_img, hsv_img, thresh_img;
+	
+	// Open the camera
+	PiCapture cap;
+	//cap.open(320, 240, true); // width, height, colour
+	cap.open(640, 480, true); // width, height, colour
+
+	// Create a control window
+	namedWindow("Control", CV_WINDOW_AUTOSIZE);
+	int iLowH = 0;
+	int iHighH = 179;
+	
+	int iLowS = 0;
+	int iHighS = 255;
+	
+	int iLowV = 0;
+	int iHighV = 255;
+	
+	int morphOpenSize = 0;
+	int morphCloseSize = 0;
+	
+	// Create trackbars in "Control" window
+	cvCreateTrackbar("LowH", "Control", &iLowH, 179); //Hue (0 - 179)
+	cvCreateTrackbar("HighH", "Control", &iHighH, 179);
+	
+	cvCreateTrackbar("LowS", "Control", &iLowS, 255); //Saturation (0 - 255)
+	cvCreateTrackbar("HighS", "Control", &iHighS, 255);
+	
+	cvCreateTrackbar("LowV", "Control", &iLowV, 255); //Value (0 - 255)
+	cvCreateTrackbar("HighV", "Control", &iHighV, 255);
+	
+	cvCreateTrackbar("Morph. Open Size", "Control", &morphOpenSize, 30);
+	cvCreateTrackbar("Morph. Close Size", "Control", &morphCloseSize, 30);
+	
+	// Create the "display" windows
+	namedWindow("Display", WINDOW_AUTOSIZE);
+	namedWindow("Thresholded", WINDOW_AUTOSIZE);
+	
+	for (;;) {
+		// Acquire an image
+		display_img = cap.grab();
+		if (display_img.empty()) {
+			std::cout << "Dropped frame\n";
+			continue;
+		}
+	
+		// Convert to HSV colour space
+		cvtColor(display_img, hsv_img, COLOR_BGR2HSV);
+
+		// Threshold the image
+		inRange(hsv_img, Scalar(iLowH, iLowS, iLowV), Scalar(iHighH, iHighS, iHighV), thresh_img);
+		
+		// Perform a morphological open to remove small objects in the foreground
+		int size = morphOpenSize;
+		if (size > 0) { // only perform the operation of the size is nonzero
+			morphologyEx(thresh_img, thresh_img, CV_MOP_OPEN, getStructuringElement(MORPH_RECT, Size(size, size)));
+		}
+
+		// Perform a morphological close to fill in small holes in the foreground
+		size = morphCloseSize;
+		if (size > 0) { // only perform the operation of the size is nonzero
+			morphologyEx(thresh_img, thresh_img, CV_MOP_CLOSE, getStructuringElement(MORPH_RECT, Size(size, size)));
+		}
+		
+		// Show the thresholded image
+		imshow("Thresholded", thresh_img);
+				
+		// Find contours
+		std::vector< std::vector<Point> > contours;
+		findContours(thresh_img, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+
+		// Draw contours
+		//drawContours(display_img, contours, -1, Scalar(250, 250, 250), 2);
+
+		// Convert each contour to a rectangle and draw that
+		for (size_t i = 0; i < contours.size(); i++) {
+			// Find the smallest rectangle which encloses this contour
+			RotatedRect rect = minAreaRect(contours[i]);
+			// Find the vertices of this rectangle
+			Point2f vertices[4];
+			rect.points(vertices);
+			// Draw it
+			for (size_t j = 0; j < 4; j++) {
+				line(display_img, vertices[j], vertices[(j+1)%4], Scalar(255, 255, 255));
+			}
+		}
+
+		// Draw the final image
+		imshow("Display", display_img);
+		
+		if (waitKey(50) == 27) // wait for X ms for the 'esc' key
+			break;
+	}
+
+	return 0;
+}
