@@ -111,6 +111,11 @@ int main(int argc, char *argv[])
 	int erodeSize = 20;
 	int dilateSize = 30;
 
+	int detectMode = 0;
+
+	int morphOpenSize = 0;
+	int morphCloseSize = 0;
+
 	char printString[10];
 
 
@@ -140,6 +145,11 @@ int main(int argc, char *argv[])
 	cvCreateTrackbar("Show combined", "Control", &dispCombFlag, 1);
 	cvCreateTrackbar("Erode size", "Control", &erodeSize, 100);
 	cvCreateTrackbar("Dilate size", "Control", &dilateSize, 100);
+
+	cvCreateTrackbar("Mode (0)", "Control", &detectMode, 1);  // Mode of detection (0 for Chris, 1 for Bronson)
+
+	cvCreateTrackbar("Morph. Open Size", "Control", &morphOpenSize, 30);
+	cvCreateTrackbar("Morph. Close Size", "Control", &morphCloseSize, 30);
 
 	// Create the "display" windows
 //	namedWindow("Display", WINDOW_AUTOSIZE);
@@ -184,69 +194,125 @@ int main(int argc, char *argv[])
 			Scalar(iHighH1,iHighS1,iHighV1),
 			img1);
 
-		erode(img1,img1,getStructuringElement(MORPH_ELLIPSE, Size(erodeSize,erodeSize)));
-		dilate(img1,img1,getStructuringElement(MORPH_RECT, Size(dilateSize,dilateSize)));
-
-		// Threshold the image - Green
+		// Threshold the image - Colour 2
 		inRange(imgHSV,
 			Scalar(iLowH2,iLowS2,iLowV2),
 			Scalar(iHighH2,iHighS2,iHighV2),
 			img2);
 
-		erode(img2,img2,getStructuringElement(MORPH_ELLIPSE, Size(erodeSize,erodeSize)));
-		dilate(img2,img2,getStructuringElement(MORPH_RECT, Size(dilateSize,dilateSize)));
+		if (detectMode == 0)
+			{
+				// Find object of colour 1
+				erode(img1,img1,getStructuringElement(MORPH_ELLIPSE, Size(erodeSize,erodeSize)));
+				dilate(img1,img1,getStructuringElement(MORPH_RECT, Size(dilateSize,dilateSize)));
+
+				// Find object of colour 2
+				erode(img2,img2,getStructuringElement(MORPH_ELLIPSE, Size(erodeSize,erodeSize)));
+				dilate(img2,img2,getStructuringElement(MORPH_RECT, Size(dilateSize,dilateSize)));
+			}
+
+		else
+			{
+				//
+				// Perform a morphological open to remove small objects in the foreground
+				int size = morphOpenSize;
+				if (size > 0) { // only perform the operation of the size is nonzero
+					morphologyEx(thresh_img, thresh_img, CV_MOP_OPEN, getStructuringElement(MORPH_RECT, Size(size, size)));
+				}
+
+				// Perform a morphological close to fill in small holes in the foreground
+				size = morphCloseSize;
+				if (size > 0) { // only perform the operation of the size is nonzero
+					morphologyEx(thresh_img, thresh_img, CV_MOP_CLOSE, getStructuringElement(MORPH_RECT, Size(size, size)));
+				}
+			}
 
 		// Look for overlap in the images
 		imgBin = img1 & img2;
 
-		std::vector< std::vector<Point> > contours;
-		vector<Vec4i> hierarchy;
+		if (detectMode == 0)
+			{
+				std::vector< std::vector<Point> > contours;
+				vector<Vec4i> hierarchy;
 
-		findContours( imgBin, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
+				findContours( imgBin, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
 
-		std::vector< std::vector<Point> > contours_poly(contours.size());
-		vector<Rect> boundRect(contours.size());
-		vector<Point2f> center(contours.size());
-		vector<float> radius(contours.size());
+				std::vector< std::vector<Point> > contours_poly(contours.size());
+				vector<Rect> boundRect(contours.size());
+				vector<Point2f> center(contours.size());
+				vector<float> radius(contours.size());
 
-		Scalar colour = Scalar(255,0,0);
-		Mat drawing = Mat::zeros(imgBin.size(), CV_8UC3);
+				Scalar colour = Scalar(255,0,0);
+				Mat drawing = Mat::zeros(imgBin.size(), CV_8UC3);
 
-		int maxArea = 0;
-		int maxBlobIdentifier = 999;
+				int maxArea = 0;
+				int maxBlobIdentifier = 999;
 
-		for (int counter = 0; counter < contours.size(); counter++)
-		{
-			int thisArea = (fabs(contourArea(contours[counter])));
+				for (int counter = 0; counter < contours.size(); counter++)
+				{
+					int thisArea = (fabs(contourArea(contours[counter])));
 
-			approxPolyDP(Mat(contours[counter]), contours_poly[counter], 3, true);
+					approxPolyDP(Mat(contours[counter]), contours_poly[counter], 3, true);
 
-			// Focus on the largest contour
-			if (thisArea > maxArea){
-				maxArea = thisArea;
-				maxBlobIdentifier = counter;
+					// Focus on the largest contour
+					if (thisArea > maxArea){
+						maxArea = thisArea;
+						maxBlobIdentifier = counter;
+					}
+
+					// Characterise identified contour
+					boundRect[counter] = boundingRect(Mat(contours_poly[counter]));
+					minEnclosingCircle((Mat) contours_poly[counter], center[counter], radius[counter]);
+
+				}
+					if (maxBlobIdentifier < 999){
+						char centroid[20];
+						xOffset = (WIDTH/2) - center[maxBlobIdentifier].x;
+						yOffset = (HEIGHT/2) - center[maxBlobIdentifier].y;
+						sprintf(printString, "x%d\n",xOffset);
+						cout<<printString<<endl;
+						write(serial_port, printString, strlen(printString));
+						sprintf(printString, "y%d\n",yOffset);
+						cout<<printString<<endl;
+						write(serial_port, printString, strlen(printString));
+
+						sprintf(centroid, "x: %3.0f, y: %3.0f", center[maxBlobIdentifier].x, center[maxBlobIdentifier].y);
+						setLabel(imgSrc, centroid, contours[maxBlobIdentifier]);
+						rectangle(imgSrc, boundRect[maxBlobIdentifier].tl(), boundRect[maxBlobIdentifier].br(), colour, 2,8,0);
+					}
+
+			}
+		else
+			{
+				// Find the center of mass of the thresholded image
+				Moments m = moments(imgBin, true);
+				if (m.m00 > 0) {
+					// Detected something
+
+					double x = m.m10 / m.m00;
+					double y = m.m01 / m.m00;
+
+					printf("%f, %f\n", x, y);
+
+					// Label it
+					circle(imgSrc, Point(x, y), 2, Scalar(250, 250, 250));
+					char strbuf [20];
+					snprintf(strbuf, 20, "%.1f, %.1f", x, y);
+					putText(imgSrc, strbuf, Point(x, y), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(250, 250, 250));
+
+					// Find contours around the object
+					std::vector< std::vector<Point> > contours;
+					findContours(imgSrc, contours, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+
+					// Draw contours
+					drawContours(imgSrc, contours, -1, Scalar(250, 250, 250), 2);
+				} else {
+					printf("No detection\n");
+				}
+
 			}
 
-			// Characterise identified contour
-			boundRect[counter] = boundingRect(Mat(contours_poly[counter]));
-			minEnclosingCircle((Mat) contours_poly[counter], center[counter], radius[counter]);
 
-		}
-			if (maxBlobIdentifier < 999){
-				char centroid[20];
-				xOffset = (WIDTH/2) - center[maxBlobIdentifier].x;
-				yOffset = (HEIGHT/2) - center[maxBlobIdentifier].y;
-				sprintf(printString, "x%d\n",xOffset);
-				cout<<printString<<endl;
-				write(serial_port, printString, strlen(printString));
-				sprintf(printString, "y%d\n",yOffset);
-				cout<<printString<<endl;
-				write(serial_port, printString, strlen(printString));
-
-				sprintf(centroid, "x: %3.0f, y: %3.0f", center[maxBlobIdentifier].x, center[maxBlobIdentifier].y);
-				setLabel(imgSrc, centroid, contours[maxBlobIdentifier]);
-				rectangle(imgSrc, boundRect[maxBlobIdentifier].tl(), boundRect[maxBlobIdentifier].br(), colour, 2,8,0);
-			}
 				imshow("imgSrc", imgSrc);
 				if (disp1Flag == 1){
 					imshow("Obj 1", img1);
