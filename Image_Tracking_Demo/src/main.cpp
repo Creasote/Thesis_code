@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
 
 
 	// Create trackbars in "Control" window
-	/*
 	cvCreateTrackbar("LowH obj 1", "Control", &iLowH1, 179); //Hue (0 - 179)
 	cvCreateTrackbar("HighH obj 1", "Control", &iHighH1, 179);
 
@@ -129,9 +128,9 @@ int main(int argc, char *argv[])
 
 	cvCreateTrackbar("LowV obj 1", "Control", &iLowV1, 255); //Value (0 - 255)
 	cvCreateTrackbar("HighV obj 1", "Control", &iHighV1, 255);
-*/
+
 	cvCreateTrackbar("Show obj 1", "Control", &disp1Flag, 1);
-/*
+
 	cvCreateTrackbar("LowH obj 2", "Control", &iLowH2, 179); //Hue (0 - 179)
 	cvCreateTrackbar("HighH obj 2", "Control", &iHighH2, 179);
 
@@ -140,21 +139,21 @@ int main(int argc, char *argv[])
 
 	cvCreateTrackbar("LowV obj 2", "Control", &iLowV2, 255); //Value (0 - 255)
 	cvCreateTrackbar("HighV obj 2", "Control", &iHighV2, 255);
-*/
+
 	cvCreateTrackbar("Show obj 2", "Control", &disp2Flag, 1);
 
 	cvCreateTrackbar("Show combined", "Control", &dispCombFlag, 1);
 	cvCreateTrackbar("Erode size", "Control", &erodeSize, 100);
 	cvCreateTrackbar("Dilate size", "Control", &dilateSize, 100);
 
-	cvCreateTrackbar("Mode (0)", "Control", &detectMode, 1);  // Mode of detection (0 for Chris, 1 for Bronson)
+	//cvCreateTrackbar("Mode (0)", "Control", &detectMode, 1);  // Mode of detection (0 for Chris, 1 for Bronson)
 
-	cvCreateTrackbar("Morph. Open Size", "Control", &morphOpenSize, 30);
-	cvCreateTrackbar("Morph. Close Size", "Control", &morphCloseSize, 30);
+	//cvCreateTrackbar("Morph. Open Size", "Control", &morphOpenSize, 30);
+	//cvCreateTrackbar("Morph. Close Size", "Control", &morphCloseSize, 30);
 
 	// Create the "display" windows
-//	namedWindow("Display", WINDOW_AUTOSIZE);
-	//namedWindow("Thresholded", WINDOW_AUTOSIZE);
+  //	namedWindow("Display", WINDOW_AUTOSIZE);
+	//  namedWindow("Thresholded", WINDOW_AUTOSIZE);
 
 
 	time(&start);
