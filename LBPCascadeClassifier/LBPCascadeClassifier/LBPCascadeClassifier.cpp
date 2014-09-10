@@ -26,7 +26,7 @@ using namespace std;
 
 // Globals
 int jumpFrameFlag = 0;
-int SCALING = 1;
+int SCALING = 3;
 String allSignsTrainingFile = "allspeed.xml";
 CascadeClassifier allsignsClassifier;
 
@@ -56,7 +56,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	ifstream fileListing ("C:\\Thesis\\used\\video\\filelist.txt");	// list of video files to use
 
 	namedWindow("Menu", CV_WINDOW_AUTOSIZE);
-	namedWindow("imgOrig", CV_WINDOW_AUTOSIZE);
+	//namedWindow("imgOrig", CV_WINDOW_AUTOSIZE);
 
 	if (fileListing.is_open())
 	{
@@ -112,9 +112,9 @@ int _tmain(int argc, _TCHAR* argv[])
 				}
 
 				// Display the current frame
-				imshow("imgOrig", imgOrig);
+				//imshow("imgOrig", imgOrig);
 
-				if (frameDisplayCounter == 1000){
+				if (frameDisplayCounter == 100){
 					time(&end);
 					double secondsElapsed = difftime(end, start);
 					double fps = frameCounter/secondsElapsed;
@@ -132,22 +132,23 @@ int _tmain(int argc, _TCHAR* argv[])
 				// Convert to Grayscale
 				cvtColor(imgScaled, imgGray, CV_BGR2GRAY);
 				equalizeHist(imgGray, imgGray);
-				imshow("imgGray", imgGray);
+				//imshow("imgGray", imgGray);
 
 				vector<Rect> signs;
 
 				// Detect signs
-				allsignsClassifier.detectMultiScale(imgGray, signs, 1.1, 2, 0, Size(5,500));
+				//allsignsClassifier.detectMultiScale(imgGray, signs, 1.05, 3, 0, Size(30/SCALING,30/SCALING), Size(100/SCALING,100/SCALING));
+				allsignsClassifier.detectMultiScale(imgGray, signs, 1.05, 3, 0, Size(15,15), Size(40,40));
 
 				for (size_t counter = 0; counter < signs.size(); counter++){
-					Point signLocation((signs[counter].x + signs[counter].width/2) * SCALING, (signs[counter].y + signs[counter].height/2) * SCALING);
-					int radius = cvRound(((signs[counter].width + signs[counter].height) * 0.25) * SCALING);
-					circle(imgOrig, signLocation, radius, Scalar(255,0,0), 3,8,0);
-					imshow("imgOrig", imgOrig);
-					cout<<"Possible sign detection"<<endl;
-					Mat imgPossibleSign = imgGray(signs[counter]);
+					Mat imgPossibleSign = imgScaled(signs[counter]);
+					Point signLocation((signs[counter].x + signs[counter].width/2), (signs[counter].y + signs[counter].height/2));
+					int radius = cvRound(((signs[counter].width + signs[counter].height) * 0.25));
+					circle(imgScaled, signLocation, radius, Scalar(255,0,0), 3,8,0);
+					cout<<"Possible sign detection size: "<<radius*2<<" (real size: "<< radius * 2 * SCALING<<")"<<endl;
 					imshow("Possible sign", imgPossibleSign);
 				}
+				imshow("imgScaled", imgScaled);
 
 				if(waitKey(1) == 27){
 					return 0;
