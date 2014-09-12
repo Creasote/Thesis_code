@@ -10,6 +10,9 @@
 #include "PiCapture.h"
 #include <fcntl.h>
 
+# define WIDTH 1280
+# define HEIGHT 960
+
 using namespace cv;
 using namespace std;
 
@@ -36,7 +39,7 @@ int main(int argc, char *argv[])
 {
 	int redErode = 1;
 	int redDilate = 1;
-	int imgScalingFactor = 8;
+	int imgScalingFactor = 2;  // prev 8
 	int frameNumber = 1;
 	int saveFileSuffix = 1;
 	char saveFileName[50];
@@ -44,24 +47,33 @@ int main(int argc, char *argv[])
 	//string videoFileName;
 
 	//imgRefSixtyZero = imread("C:\\Thesis\\used\\sixtycropped0.jpg", CV_LOAD_IMAGE_UNCHANGED);
-	imgRefForty = imread("mnt//Thesis//reference//speed40.bmp", CV_LOAD_IMAGE_UNCHANGED);
-	imgRefSixty = imread("mnt//Thesis//reference//speed60.bmp", CV_LOAD_IMAGE_UNCHANGED);
-	imgRefEighty = imread("mnt//Thesis//reference//speed80.bmp", CV_LOAD_IMAGE_UNCHANGED);
-	imgRefNinety = imread("mnt//Thesis//reference//speed90.bmp", CV_LOAD_IMAGE_UNCHANGED);
-	imgRefHundred = imread("mnt//Thesis//reference//speed100.bmp", CV_LOAD_IMAGE_UNCHANGED);
-	imgRefHundredTen = imread("mnt//Thesis//reference//speed110.bmp", CV_LOAD_IMAGE_UNCHANGED);
+	imgRefForty = imread("/mnt/Thesis/reference/speed40.bmp", CV_LOAD_IMAGE_UNCHANGED);
+	imgRefSixty = imread("/mnt/Thesis/reference/speed60.bmp", CV_LOAD_IMAGE_UNCHANGED);
+	imgRefEighty = imread("/mnt/Thesis/reference/speed80.bmp", CV_LOAD_IMAGE_UNCHANGED);
+	imgRefNinety = imread("/mnt/Thesis/reference/speed90.bmp", CV_LOAD_IMAGE_UNCHANGED);
+	imgRefHundred = imread("/mnt/Thesis/reference/speed100.bmp", CV_LOAD_IMAGE_UNCHANGED);
+	imgRefHundredTen = imread("/mnt/Thesis/reference/speed110.bmp", CV_LOAD_IMAGE_UNCHANGED);
 	//resize(imgRefSixtyZero, imgRefSixtyZero, Size(30,30));
 
-	vec40 = imread("mnt//Thesis//reference//speed40.png", CV_LOAD_IMAGE_UNCHANGED);
-	vec60 = imread("mnt//Thesis//reference//speed60.png", CV_LOAD_IMAGE_UNCHANGED);
-	vec80 = imread("mnt//Thesis//reference//speed80.png", CV_LOAD_IMAGE_UNCHANGED);
-	vec90 = imread("mnt//Thesis//reference//speed90.png", CV_LOAD_IMAGE_UNCHANGED);
-	vec100 = imread("mnt//Thesis//reference//speed100.png", CV_LOAD_IMAGE_UNCHANGED);
-	vec110 = imread("mnt//Thesis//reference//speed110.png", CV_LOAD_IMAGE_UNCHANGED);
+	vec40 = imread("/mnt/Thesis/reference/speed40.png", CV_LOAD_IMAGE_UNCHANGED);
+	vec60 = imread("/mnt/Thesis/reference/speed60.png", CV_LOAD_IMAGE_UNCHANGED);
+	vec80 = imread("/mnt/Thesis/reference/speed80.png", CV_LOAD_IMAGE_UNCHANGED);
+	vec90 = imread("/mnt/Thesis/reference/speed90.png", CV_LOAD_IMAGE_UNCHANGED);
+	vec100 = imread("/mnt/Thesis/reference/speed100.png", CV_LOAD_IMAGE_UNCHANGED);
+	vec110 = imread("/mnt/Thesis/reference/speed110.png", CV_LOAD_IMAGE_UNCHANGED);
 
-	ofstream logFile ("mnt//Thesis//used//video//logfile.txt");
+	if(vec40.empty()){
+		cout<<"Failed to open vector files"<<endl;
+		return 0;
+	}
+	else{
+		imshow("40 Sign", vec40);
+		cout<<"It appears the vec files loaded... maybe?"<<endl;
+	}
 
-	ifstream fileListing ("mnt//Thesis//used//video//filelist.txt");
+	ofstream logFile ("/mnt/Thesis/used/video/logfile.txt");
+
+	ifstream fileListing ("/mnt/Thesis/used/video/filelistlinux.txt");
 	//if (fileListing.is_open()){
 //		while(getline(fileListing, videoFileName))
 //			{
@@ -75,8 +87,8 @@ int main(int argc, char *argv[])
 	Mat imgFocussed;
 	Mat imgObjectConfirmed;
 
-	//sprintf(videoFileName,"//mnt//Thesis//used//MOV_0003");
-	sprintf(videoFileName,"MOV_0003.mp4");
+	sprintf(videoFileName,"/mnt/Thesis/used/MOV_0003.mp4");
+	//sprintf(videoFileName,"MOV_0003.mp4");
 
 	time_t start, end;
 	int frameCounter = 1;
@@ -95,21 +107,22 @@ int main(int argc, char *argv[])
 
 	// Open the camera
 	PiCapture cap;
-	cap.open(1920, 1080, true); // width, height, colour
+	//cap.open(1920, 1080, true); // width, height, colour
+	cap.open(WIDTH, HEIGHT, true); // width, height, colour
 
 	// Load the video
-//	VideoCapture cap(videoFileName);
+	//VideoCapture cap(videoFileName);
 	//VideoCapture cap("./MOV_0003.mp4");
 	//VideoCapture cap("C:\\Thesis\\used\\test3.mp4");
 
 	// Check the image is loaded
-	/*
+/*
 	if(!cap.isOpened()){
 		cout<<"Failed to load video."<<endl;
 		system("pause");
 		return -1;
 	}
-	*/
+*/
 
 	// Get video length
 	//int videoLength = cap.get(CV_CAP_PROP_FRAME_COUNT);
@@ -149,6 +162,7 @@ int main(int argc, char *argv[])
 		if (imgOrig.empty()){
 			cout<< "Dropped frame\n";
 			frameCounter--;
+			waitKey(500);
 			continue;
 		}
 		frameCounter++;
@@ -171,7 +185,8 @@ int main(int argc, char *argv[])
 		}
 		*/
 		// Resize the image
-		resize(imgOrig,imgScaled,Size(240,135));
+		//resize(imgOrig,imgScaled,Size(240,135));
+		resize(imgOrig,imgScaled,Size(WIDTH/imgScalingFactor,HEIGHT/imgScalingFactor));
 
 		// Convert to HSV
 		cvtColor(imgScaled,imgHSV,CV_BGR2HSV);
@@ -229,7 +244,7 @@ int main(int argc, char *argv[])
 				signPosY = signPosY - (maxYcoord - signPosY + 1);
 			}
 
-			imgObjectUnknown = imgOrig(Rect(signPosX, signPosY, signWidth*1.4/2, signHeight*1.4));
+			imgObjectUnknown = imgOrig(Rect(signPosX, signPosY, signWidth*1.4, signHeight*1.4));
 
 
 			// Convert to HSV
@@ -263,7 +278,7 @@ int main(int argc, char *argv[])
 
 				//if(waitKey(1000) == 27) break;
 				//imgObjectConfirmed = imgObjectUnknown(Rect(signPosXFocussed, signPosYFocussed, radiusFocussed+1, radiusFocussed+1));
-				resize(imgObjectUnknown,imgObjectConfirmed,Size(35/2,36));  // was size(40,40)
+				resize(imgObjectUnknown,imgObjectConfirmed,Size(35,36));  // was size(40,40)
 
 				matchTemplate(imgObjectConfirmed, imgRefForty, confidenceForty, CV_TM_CCOEFF_NORMED);
 				matchTemplate(imgObjectConfirmed, imgRefSixty, confidenceSixty, CV_TM_CCOEFF_NORMED);
@@ -330,7 +345,7 @@ int main(int argc, char *argv[])
 					default:
 						break;
 					}
-					sprintf(saveFileName, "mnt//Thesis//extracts//positive%03d-%04d.jpg", currentSpeed, saveFileSuffix); // mnt/Thesis/extracts/
+					sprintf(saveFileName, "/mnt/Thesis/extracts/positive%03d-%04d.jpg", currentSpeed, saveFileSuffix); // mnt/Thesis/extracts/
 					imwrite(saveFileName, imgObjectUnknown);
 					saveFileSuffix++;
 
