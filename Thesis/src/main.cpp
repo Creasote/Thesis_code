@@ -10,8 +10,8 @@
 #include "PiCapture.h"
 #include <fcntl.h>
 
-# define WIDTH 1280
-# define HEIGHT 960
+# define WIDTH 640
+# define HEIGHT 480
 
 using namespace cv;
 using namespace std;
