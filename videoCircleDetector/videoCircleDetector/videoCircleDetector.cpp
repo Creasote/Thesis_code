@@ -45,7 +45,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	int redErode = 1;
 	int redDilate = 1;
-	int imgScalingFactor = 8;
+	int imgScalingFactor = 4;
 	int frameNumber = 1;
 	int saveFileSuffix = 1;
 	char saveFileName[50];
@@ -76,8 +76,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		while(getline(fileListing, videoFileName))
 			{
 
-
-	Mat imgOrig;
+	Mat imgFull;
+//	Mat imgOrig;
 	Mat imgScaled;
 	Mat imgHSV;
 	Mat imgRedFocussed;
@@ -190,7 +190,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			jumpFrameFlag = 0;
 		}
 	
-		bool frameSuccess = cap.read(imgOrig);
+		bool frameSuccess = cap.read(imgFull);
+		//bool frameSuccess = cap.read(imgOrig);
 		frameCounter++;
 		frameDisplayCounter++;
 		
@@ -208,7 +209,13 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 		*/
 		// Resize the image
-		resize(imgOrig,imgScaled,Size(240,135));
+		Size imgFullSize = imgFull.size();
+		//cout<<"Full size: "<<imgFullSize.width<<"x"<<imgFullSize.height<<endl;
+//		Mat imgOrig(imgFull, Rect(0,imgFullSize.height/3, imgFullSize.width/2,imgFullSize.height*2/3));
+		Mat imgOrig = imgFull(Rect(0,imgFullSize.height/3, imgFullSize.width/2,imgFullSize.height/3));
+		//resize(imgOrig,imgScaled,Size(240,135));
+		resize(imgOrig,imgScaled,Size((imgFullSize.width/2)/imgScalingFactor,(imgFullSize.height/3)/imgScalingFactor));
+		//cout<<"imgScaled created"<<endl;
 
 		// Convert to HSV
 		cvtColor(imgScaled,imgHSV,CV_BGR2HSV);
@@ -231,7 +238,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			30,  // minimum distance between two circles
 			100, // Canny high threshold
 			30, // minimum number of votes
-			3, 15); // min and max radius
+			(24/imgScalingFactor), (120/imgScalingFactor)); // min and max radius
 
 		for ( size_t circleCount = 0; circleCount < circles.size(); circleCount++){
 			Point center(cvRound(circles[circleCount][0]), cvRound(circles[circleCount][1]));
@@ -252,21 +259,27 @@ int _tmain(int argc, _TCHAR* argv[])
 			if (signPosY > (imgRedSize.height - radius)) signPosY = imgRedSize.height - radius - 1;
 			
 			signPosX *= imgScalingFactor;
+			//cout<<"signPosX: "<<signPosX<<endl;
+//			signPosY += (imgFullSize.height/(3*imgScalingFactor));	// <------ added to make placement right 
 			signPosY *= imgScalingFactor;
+			//cout<<"signPosY:"<<signPosY<<endl;
+			//signPosY += (imgFullSize.height/3);	// <------ added to make placement right 
 			signWidth *= imgScalingFactor;
 			int signWidthOversize = signWidth * 1.4;
 			signHeight *= imgScalingFactor;
 			int signHeightOversize = signHeight * 1.4;
 			int maxXcoord = signPosX + (signWidthOversize);
 			if (maxXcoord > imgOrigSize.width){
-				signPosX = signPosX - (maxXcoord - signPosX +1);
+				signPosX = signPosX - (maxXcoord - imgOrigSize.width +1);
+//				signPosX = signPosX - (maxXcoord - signPosX +1);
 			}
 			int maxYcoord = signPosY + (signHeightOversize);
 			if (maxYcoord > imgOrigSize.height){
-				signPosY = signPosY - (maxYcoord - signPosY + 1);
+				signPosY = signPosY - (maxYcoord - imgOrigSize.height + 1);
+//				signPosY = signPosY - (maxYcoord - signPosY + 1);
 			}
 			
-			imgObjectUnknown = imgOrig(Rect(signPosX, signPosY, signWidth*1.4/2, signHeight*1.4));
+			imgObjectUnknown = imgOrig(Rect(signPosX, signPosY, signWidth*1.4, signHeight*1.4));
 			
 
 			// Convert to HSV
@@ -300,7 +313,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			
 				//if(waitKey(1000) == 27) break;
 				//imgObjectConfirmed = imgObjectUnknown(Rect(signPosXFocussed, signPosYFocussed, radiusFocussed+1, radiusFocussed+1));
-				resize(imgObjectUnknown,imgObjectConfirmed,Size(35/2,36));  // was size(40,40)
+				resize(imgObjectUnknown,imgObjectConfirmed,Size(35,36));  // was size(40,40)
 				
 				matchTemplate(imgObjectConfirmed, imgRefForty, confidenceForty, CV_TM_CCOEFF_NORMED);
 				matchTemplate(imgObjectConfirmed, imgRefSixty, confidenceSixty, CV_TM_CCOEFF_NORMED);
