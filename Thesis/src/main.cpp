@@ -10,8 +10,8 @@
 #include "PiCapture.h"
 #include <fcntl.h>
 
-# define WIDTH 640
-# define HEIGHT 480
+# define WIDTH 1920
+# define HEIGHT 1080
 
 using namespace cv;
 using namespace std;
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 {
 	int redErode = 1;
 	int redDilate = 1;
-	int imgScalingFactor = 2;  // prev 8
+	int imgScalingFactor = 8;  // prev 8
 	int frameNumber = 1;
 	int saveFileSuffix = 1;
 	char saveFileName[50];
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	else{
-		imshow("40 Sign", vec40);
+		//imshow("40 Sign", vec40);
 		cout<<"It appears the vec files loaded... maybe?"<<endl;
 	}
 
@@ -131,12 +131,12 @@ int main(int argc, char *argv[])
 	//int sourceFPS = cap.get(CV_CAP_PROP_FPS);
 
 	// Output
-	namedWindow("Original Image", CV_WINDOW_AUTOSIZE);
-	namedWindow("Filtered Image", CV_WINDOW_AUTOSIZE);
-	namedWindow("Detected Object", CV_WINDOW_AUTOSIZE);
-	namedWindow("Discarded Detection", CV_WINDOW_AUTOSIZE);
-	namedWindow("Menu", CV_WINDOW_AUTOSIZE);
-	namedWindow("Speed Zone", CV_WINDOW_AUTOSIZE);
+	//namedWindow("Original Image", CV_WINDOW_AUTOSIZE);
+	//namedWindow("Filtered Image", CV_WINDOW_AUTOSIZE);
+	//namedWindow("Detected Object", CV_WINDOW_AUTOSIZE);
+	//namedWindow("Discarded Detection", CV_WINDOW_AUTOSIZE);
+	//namedWindow("Menu", CV_WINDOW_AUTOSIZE);
+	//namedWindow("Speed Zone", CV_WINDOW_AUTOSIZE);
 
 	cout<<"Video loaded for scanning..."<<endl;
 	cout<<videoFileName<<endl;
@@ -313,33 +313,33 @@ int main(int argc, char *argv[])
 
 				if ((detectionConfidence > 0.4)|| (detectionConfidence < -0.4))
 				{
-					imshow("Detected Object", imgObjectUnknown);
+					//imshow("Detected Object", imgObjectUnknown);
 					objectSignConfirmed = 1;
 
 					switch (speedFlag)
 					{
 					case 0:
-						imshow("Speed Zone", vec40);
+						//imshow("Speed Zone", vec40);
 						currentSpeed = 40;
 						break;
 					case 1:
-						imshow("Speed Zone", vec60);
+						//imshow("Speed Zone", vec60);
 						currentSpeed = 60;
 						break;
 					case 2:
-						imshow("Speed Zone", vec80);
+						//imshow("Speed Zone", vec80);
 						currentSpeed = 80;
 						break;
 					case 3:
-						imshow("Speed Zone", vec90);
+						//imshow("Speed Zone", vec90);
 						currentSpeed = 90;
 						break;
 					case 4:
-						imshow("Speed Zone", vec100);
+						//imshow("Speed Zone", vec100);
 						currentSpeed = 100;
 						break;
 					case 5:
-						imshow("Speed Zone", vec110);
+						//imshow("Speed Zone", vec110);
 						currentSpeed = 110;
 						break;
 					default:
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
 
 			if (objectSignConfirmed == 0){
 				// this object was discarded
-				imshow("Discarded Detection", imgObjectUnknown);
+				//imshow("Discarded Detection", imgObjectUnknown);
 			}
 
 			circle(imgScaled, center, 3, Scalar(0,255,0), -1, 8, 0);
@@ -382,8 +382,8 @@ int main(int argc, char *argv[])
 
 		}
 
-		imshow("Original Image", imgScaled);
-		imshow("Filtered Image", imgRedFocussed);
+		//imshow("Original Image", imgScaled);
+		//imshow("Filtered Image", imgRedFocussed);
 
 		//setTrackbarPos("Current Position", "Menu", currentFrame);
 
