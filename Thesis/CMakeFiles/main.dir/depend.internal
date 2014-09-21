@@ -317,7 +317,6 @@ CMakeFiles/main.dir/src/cameracontrol.cpp.o
  /opt/vc/include/interface/vmcs_host/linux/vchost_config.h
  /opt/vc/include/interface/vmcs_host/vc_vchi_gencmd.h
 CMakeFiles/main.dir/src/main.cpp.o
- /home/pi/code/Thesis/src/PiCapture.h
  /home/pi/code/Thesis/src/camera.h
  /home/pi/code/Thesis/src/cameracontrol.h
  /home/pi/code/Thesis/src/main.cpp

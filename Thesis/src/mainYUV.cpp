@@ -10,8 +10,8 @@
 //#include "PiCapture.h"
 //#include <fcntl.h>
 
-# define WIDTH 512
-# define HEIGHT 512
+# define WIDTH 1024
+# define HEIGHT 1024
 
 using namespace cv;
 using namespace std;
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
 	char saveFileName[50];
 	char videoFileName[50];
 	//string videoFileName;
-	int goalFPS = 15;
+	int goalFPS = 30;
 
 	//char imgBufferOrig[WIDTH*HEIGHT+((WIDTH/2)*(HEIGHT/2))*2];
 	//char imgBufferScaled[(WIDTH/imgScalingFactor)*(HEIGHT/imgScalingFactor)+((WIDTH/(imgScalingFactor*2))*(HEIGHT/(imgScalingFactor*2)))*2];
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 	//cap.open(1920, 1080, true); // width, height, colour
 	//cap.open(WIDTH, HEIGHT, true); // width, height, colour
 	//InitGraphics();
-	CCamera* cap = StartCamera(WIDTH, HEIGHT, goalFPS, 3, true);
+	CCamera* cap = StartCamera(WIDTH, HEIGHT, goalFPS, 3, false);
 
 	/*
 	// Output
@@ -129,17 +129,12 @@ int main(int argc, char *argv[])
 	for(;;){
 		// Capture full-size YUV reference image
 		cap->ReadFrame(0, imgBufferOrig, sizeof(imgBufferOrig));
-		//Mat imgOrigCam(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
-		Mat imgOrig(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
-		//imshow("Cam source", imgOrigCam);
-		//imgOrig = imgOrigCam(Rect(0,0,(WIDTH/4),(HEIGHT/4)));
-		//imshow("Cut down", imgOrig);
+		Mat imgOrigCam(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
+		imgOrig = imgOrigCam(Rect(0,0,(WIDTH/4),(HEIGHT/4)));
 		// Capture scaled-size YUV image for processing
 		cap->ReadFrame(2, imgBufferScaled, sizeof(imgBufferScaled));
-		//Mat imgScaledCam(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
-		Mat imgScaled(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
-		//imshow("Scaled source", imgScaledCam);
-		//imgScaled = imgScaledCam(Rect(0,0,(WIDTH/(imgScalingFactor * 4)),(HEIGHT/(imgScalingFactor * 4))));
+		Mat imgScaledCam(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
+		imgScaled = imgScaledCam(Rect(0,0,(WIDTH/(imgScalingFactor * 4)),(HEIGHT/(imgScalingFactor * 4))));
 
 		// Ensure frames loaded correctly
 		if (imgOrig.empty()){
@@ -160,8 +155,7 @@ int main(int argc, char *argv[])
 		// Convert to HSV
 		//cvtColor(imgScaled,imgHSV,CV_BGR2HSV);
 		//mixChannels(&imgScaled, imgHSV, ...
-		//imgHSV = imgScaled;
-		cvtColor(imgScaled,imgHSV,CV_RGB2HSV);
+		imgHSV = imgScaled;
 
 		// *************************
 		// * Update to take just the Y channel?
@@ -227,7 +221,6 @@ int main(int argc, char *argv[])
 
 			// Convert to HSV
 			cvtColor(imgObjectUnknown,imgFocussed,CV_BGR2HSV);
-			//cvtColor(imgObjectUnknown,imgFocussed,CV_RGB2HSV);
 
 			// Filter a redSign img
 			inRange(imgFocussed,Scalar(153,51,0),Scalar(179,255,255),imgFocussed);
