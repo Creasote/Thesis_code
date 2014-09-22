@@ -75,20 +75,23 @@ int main(int argc, char *argv[])
 		cout<<"Failed to open vector files"<<endl;
 		return 0;
 	}
-	else{
-		//imshow("40 Sign", vec40);
-		cout<<"It appears the vec files loaded... maybe?"<<endl;
-	}
 
 	ofstream logFile ("/mnt/Thesis/used/video/logfile.txt");
 
-	Mat imgOrig;
-	Mat imgScaled;
-	Mat imgHSV;
+	Mat imgOrigCam(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
+	Mat imgOrig((imgOrig.rows/4),(imgOrig.cols/4), CV_8UC4);
+	Mat imgScaledCam(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
+	Mat imgScaled((imgScaledCam.rows/4),(imgScaledCam.cols/4), CV_8UC4);
+	//Mat imgHSV;
 	Mat imgRedFocussed;
 	Mat imgObjectUnknown;
 	Mat imgFocussed;
 	Mat imgObjectConfirmed;
+
+	int channelList[] = {0,0,1,1,2,2,3,3};
+	Mat imgHSV(imgScaled.rows,imgScaled.cols,CV_8UC3);
+	Mat imgAlpha(imgScaled.rows,imgScaled.cols, CV_8UC1);
+	Mat outputArray[] = {imgHSV, imgAlpha};
 
 	time_t start, end;
 	int frameCounter = 1;
@@ -104,10 +107,6 @@ int main(int argc, char *argv[])
 
 
 	// Open the camera
-	//PiCapture cap;
-	//cap.open(1920, 1080, true); // width, height, colour
-	//cap.open(WIDTH, HEIGHT, true); // width, height, colour
-	//InitGraphics();
 	CCamera* cap = StartCamera(WIDTH, HEIGHT, goalFPS, 3, false);
 
 	/*
@@ -119,21 +118,31 @@ int main(int argc, char *argv[])
 	namedWindow("Menu", CV_WINDOW_AUTOSIZE);
 	namedWindow("Speed Zone", CV_WINDOW_AUTOSIZE);
 	*/
+	namedWindow("Menu", CV_WINDOW_AUTOSIZE);
+
+	int val1min = 0;
+	int val1max = 255;
+	int val2min = 150;
+	int val2max = 255;
+	int val3min = 0;
+	int val3max = 255;
 
 	// Build menu here
-	//createTrackbar("Video Position", "Menu", &frameNumber, videoLength, setVideoPositionCallback);
-	//createTrackbar("Current Position", "Menu", &frameNumber, videoLength);
+	createTrackbar("val1min", "Menu", &val1min, 255);
+	createTrackbar("val1max", "Menu", &val1max, 255);
+	createTrackbar("val2min", "Menu", &val2min, 255);
+	createTrackbar("val2max", "Menu", &val2max, 255);
+	createTrackbar("val3min", "Menu", &val3min, 255);
+	createTrackbar("val3max", "Menu", &val3max, 255);
 
 	time(&start);
 
 	for(;;){
 		// Capture full-size YUV reference image
 		cap->ReadFrame(0, imgBufferOrig, sizeof(imgBufferOrig));
-		Mat imgOrigCam(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
 		imgOrig = imgOrigCam(Rect(0,0,(WIDTH/4),(HEIGHT/4)));
 		// Capture scaled-size YUV image for processing
 		cap->ReadFrame(2, imgBufferScaled, sizeof(imgBufferScaled));
-		Mat imgScaledCam(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
 		imgScaled = imgScaledCam(Rect(0,0,(WIDTH/(imgScalingFactor * 4)),(HEIGHT/(imgScalingFactor * 4))));
 
 		// Ensure frames loaded correctly
@@ -151,11 +160,18 @@ int main(int argc, char *argv[])
 		}
 		frameCounter++;
 		frameDisplayCounter++;
-		
+
 		// Convert to HSV
 		//cvtColor(imgScaled,imgHSV,CV_BGR2HSV);
 		//mixChannels(&imgScaled, imgHSV, ...
-		imgHSV = imgScaled;
+		//imgHSV = imgScaled;
+		// **************************
+		// * This section added for *
+		// * testing only and needs *
+		// * to be cleaned up asap. *
+		// **************************
+
+		mixChannels(&imgScaled, 1, outputArray, 2, channelList, 4);
 
 		// *************************
 		// * Update to take just the Y channel?
@@ -164,7 +180,8 @@ int main(int argc, char *argv[])
 
 		// Filter a redSign img
 		//inRange(imgHSV,Scalar(153,51,0),Scalar(179,255,255),imgRedFocussed);
-		inRange(imgHSV,Scalar(0,150,0),Scalar(255,255,255),imgRedFocussed);
+		//inRange(imgHSV,Scalar(0,150,0,0),Scalar(255,255,255,255),imgRedFocussed);
+		inRange(imgHSV,Scalar(val1min,val2min,val3min),Scalar(val1max,val2max,val3max),imgRedFocussed);
 
 		// remove small artefacts
 		//erode(imgRedFocussed, imgRedFocussed, getStructuringElement(MORPH_ELLIPSE, Size(redErode,redErode)));
@@ -173,7 +190,6 @@ int main(int argc, char *argv[])
 		// fill small gaps
 		//dilate(imgRedFocussed, imgRedFocussed, getStructuringElement(MORPH_ELLIPSE, Size(redDilate,redDilate)));
 		//erode(imgRedFocussed, imgRedFocussed, getStructuringElement(MORPH_ELLIPSE, Size(redErode,redErode)));
-
 		GaussianBlur(imgRedFocussed, imgRedFocussed, Size(5,5),2,2);
 		vector<Vec3f> circles;
 		HoughCircles(imgRedFocussed, circles, CV_HOUGH_GRADIENT,
@@ -209,23 +225,36 @@ int main(int argc, char *argv[])
 			int signHeightOversize = signHeight * 1.4;
 			int maxXcoord = signPosX + (signWidthOversize);
 			if (maxXcoord > imgOrigSize.width){
-				signPosX = signPosX - (maxXcoord - signPosX +1);
+				signPosX = signPosX - (maxXcoord - imgOrigSize.width +1);
 			}
 			int maxYcoord = signPosY + (signHeightOversize);
 			if (maxYcoord > imgOrigSize.height){
-				signPosY = signPosY - (maxYcoord - signPosY + 1);
+				signPosY = signPosY - (maxYcoord - imgOrigSize.height + 1);
 			}
 
 			imgObjectUnknown = imgOrig(Rect(signPosX, signPosY, signWidth*1.4, signHeight*1.4));
 
 
 			// Convert to HSV
-			cvtColor(imgObjectUnknown,imgFocussed,CV_BGR2HSV);
+			//cvtColor(imgObjectUnknown,imgFocussed,CV_BGR2HSV);
+			// *************************
+			// * Additional processing *
+			// * required here.        *
+			// *************************
+			//imgFocussed = imgObjectUnknown;
+			Mat imgFocussed(imgObjectUnknown.rows, imgObjectUnknown.cols, CV_8UC3);
+			Mat imgAlpha2(imgObjectUnknown.rows, imgObjectUnknown.cols, CV_8UC1);
+			Mat outputArray2[] = {imgFocussed, imgAlpha2};
+			mixChannels(&imgObjectUnknown, 1, outputArray2, 2, channelList, 4);
+
 
 			// Filter a redSign img
-			inRange(imgFocussed,Scalar(153,51,0),Scalar(179,255,255),imgFocussed);
+			//inRange(imgFocussed,Scalar(153,51,0),Scalar(179,255,255),imgFocussed);
+			//inRange(imgFocussed,Scalar(0,150,0,0),Scalar(255,255,255,255),imgFocussed);
+			inRange(imgFocussed,Scalar(val1min,val2min,val3min),Scalar(val1max,val2max,val3max),imgFocussed);
 
 			GaussianBlur(imgFocussed, imgFocussed, Size(5,5),2,2);
+
 			vector<Vec3f> circlesFocussed;
 			HoughCircles(imgFocussed, circlesFocussed, CV_HOUGH_GRADIENT,
 				3,	// accumulator resolution (size of image / 3)
@@ -237,9 +266,6 @@ int main(int argc, char *argv[])
 			for ( size_t objectCount = 0; objectCount < circlesFocussed.size(); objectCount++){
 				Point centerFocussed(cvRound(circlesFocussed[objectCount][0]), cvRound(circlesFocussed[objectCount][1]));
 				int radiusFocussed = cvRound(circlesFocussed[objectCount][2]);
-				//cout<<"(sub) Centre: "<<centerFocussed<<" radius: "<<radiusFocussed<<endl;
-				//int currentFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
-				//cout<<"Frame: "<<currentFrame<<", sign found at: "<<centerFocussed<<" of radius: "<<radiusFocussed<<endl;
 
 				/*
 				int signPosXFocussed = (circlesFocussed[objectCount][0]-(radius/2));
@@ -250,7 +276,9 @@ int main(int argc, char *argv[])
 
 				//if(waitKey(1000) == 27) break;
 				//imgObjectConfirmed = imgObjectUnknown(Rect(signPosXFocussed, signPosYFocussed, radiusFocussed+1, radiusFocussed+1));
-				resize(imgObjectUnknown,imgObjectConfirmed,Size(35,36));  // was size(40,40)
+				imgFocussed.create(imgObjectUnknown.rows, imgObjectUnknown.cols, CV_8UC3);
+				mixChannels(&imgObjectUnknown, 1, outputArray2, 2, channelList, 4);
+				resize(imgFocussed,imgObjectConfirmed,Size(35,36));  // was size(40,40)
 
 				matchTemplate(imgObjectConfirmed, imgRefForty, confidenceForty, CV_TM_CCOEFF_NORMED);
 				matchTemplate(imgObjectConfirmed, imgRefSixty, confidenceSixty, CV_TM_CCOEFF_NORMED);
@@ -258,7 +286,6 @@ int main(int argc, char *argv[])
 				matchTemplate(imgObjectConfirmed, imgRefNinety, confidenceNinety, CV_TM_CCOEFF_NORMED);
 				matchTemplate(imgObjectConfirmed, imgRefHundred, confidenceHundred, CV_TM_CCOEFF_NORMED);
 				matchTemplate(imgObjectConfirmed, imgRefHundredTen, confidenceHundredTen, CV_TM_CCOEFF_NORMED);
-
 
 				// Highlight the object. This is disabled for file export
 				//circle(imgObjectUnknown, centerFocussed, 3, Scalar(0,255,0), -1, 8, 0);
@@ -317,27 +344,35 @@ int main(int argc, char *argv[])
 					default:
 						break;
 					}
+
 					sprintf(saveFileName, "/mnt/Thesis/extracts/positive%03d-%04d.jpg", currentSpeed, saveFileSuffix); // mnt/Thesis/extracts/
 					imwrite(saveFileName, imgObjectUnknown);
 					saveFileSuffix++;
 
 					cout<<"Decided "<<currentSpeed<<" km/h sign with confidence "<<detectionConfidence<<endl;
+
+					/*
 					if (logFile.is_open()){
 						logFile<<"+-------------------------------------+\n";
 						logFile<<"File saved: "<<saveFileName<<'\n';
 						//logFile<<"From frame: "<<currentFrame<<'\n';
 						logFile<<"Detected: "<<currentSpeed<<" km/h with confidence "<<detectionConfidence<<'\n';
 					}
+					*/
 					for (int counter = 0; counter < 6; counter++){
 						cout<<confidences[counter]<<" ";
+						/*
 						if (logFile.is_open()){
 							logFile<<confidences[counter]<<" ";
 						}
+						*/
 					}
 					cout<<endl;
+					/*
 					if (logFile.is_open()){
 						logFile<<"\n+-------------------------------------+\n\n";
 					}
+					*/
 				}
 				//else {
 				//	cout<<"Low confidence in detection: "<<someValue<<endl;
@@ -353,7 +388,6 @@ int main(int argc, char *argv[])
 			circle(imgScaled, center, radius, Scalar(255,0,0), 3,8,0);
 
 		}
-
 		//imshow("Orig", imgOrig);
 		imshow("Original Image", imgScaled);
 		imshow("Filtered Image", imgRedFocussed);
@@ -370,7 +404,7 @@ int main(int argc, char *argv[])
 		double secondsElapsed = difftime(end, start);
 		double fps = frameCounter/secondsElapsed;
 
-		if (fps > goalFPS){
+		if (fps > (goalFPS-5)){
 			waitKey(100);
 		}
 

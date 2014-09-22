@@ -41,7 +41,8 @@ int main(int argc, char *argv[])
 {
 	int redErode = 1;
 	int redDilate = 1;
-	int imgScalingFactor = 4;  // prev 8
+	int downsampleLevels = 2;	 // orig + downsampleLevels (ie. how many additional levels to create)
+	int imgScalingFactor = 4;  // prev 8 Should be 2^downsampleLevels
 	int frameNumber = 1;
 	int saveFileSuffix = 1;
 	char saveFileName[50];
@@ -82,13 +83,22 @@ int main(int argc, char *argv[])
 
 	ofstream logFile ("/mnt/Thesis/used/video/logfile.txt");
 
-	Mat imgOrig;
-	Mat imgScaled;
 	Mat imgHSV;
 	Mat imgRedFocussed;
 	Mat imgObjectUnknown;
 	Mat imgFocussed;
 	Mat imgObjectConfirmed;
+
+	Mat imgOrigCam(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
+	Mat imgOrig(imgOrigCam.rows, imgOrigCam.cols, CV_8UC3);
+	Mat imgOrigAlpha(imgOrigCam.rows, imgOrigCam.cols, CV_8UC1);
+	Mat arrayOrig[] = {imgOrig, imgOrigAlpha};
+	Mat imgScaledCam(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
+	Mat imgScaled(imgScaledCam.rows, imgScaledCam.cols, CV_8UC3);
+	Mat imgScaledAlpha(imgScaledCam.rows, imgScaledCam.cols, CV_8UC1);
+	Mat arrayScaled[] = {imgScaled, imgScaledAlpha};
+	int channelList[] = {0,2,1,1,2,0,3,3}; // rearrange so that RGB -> BRG and alpha channel is split off
+
 
 	time_t start, end;
 	int frameCounter = 1;
@@ -108,7 +118,7 @@ int main(int argc, char *argv[])
 	//cap.open(1920, 1080, true); // width, height, colour
 	//cap.open(WIDTH, HEIGHT, true); // width, height, colour
 	//InitGraphics();
-	CCamera* cap = StartCamera(WIDTH, HEIGHT, goalFPS, 3, true);
+	CCamera* cap = StartCamera(WIDTH, HEIGHT, goalFPS, (downsampleLevels+1), true);
 
 	/*
 	// Output
@@ -119,25 +129,40 @@ int main(int argc, char *argv[])
 	namedWindow("Menu", CV_WINDOW_AUTOSIZE);
 	namedWindow("Speed Zone", CV_WINDOW_AUTOSIZE);
 	*/
+	namedWindow("Menu", CV_WINDOW_AUTOSIZE);
+
+	int val1min = 150;
+	int val1max = 179;
+	int val2min = 50;
+	int val2max = 255;
+	int val3min = 0;
+	int val3max = 255;
+	int val1amin = 0;
+	int val1amax = 20;
 
 	// Build menu here
-	//createTrackbar("Video Position", "Menu", &frameNumber, videoLength, setVideoPositionCallback);
-	//createTrackbar("Current Position", "Menu", &frameNumber, videoLength);
+	createTrackbar("val1min", "Menu", &val1min, 255);
+	createTrackbar("val1max", "Menu", &val1max, 255);
+	createTrackbar("val2min", "Menu", &val2min, 255);
+	createTrackbar("val2max", "Menu", &val2max, 255);
+	createTrackbar("val3min", "Menu", &val3min, 255);
+	createTrackbar("val3max", "Menu", &val3max, 255);
+
 
 	time(&start);
 
 	for(;;){
 		// Capture full-size YUV reference image
 		cap->ReadFrame(0, imgBufferOrig, sizeof(imgBufferOrig));
-		//Mat imgOrigCam(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
-		Mat imgOrig(HEIGHT, WIDTH, CV_8UC4, (void *)imgBufferOrig);
+		mixChannels(&imgOrigCam, 1, arrayOrig, 2, channelList, 4);
 		//imshow("Cam source", imgOrigCam);
 		//imgOrig = imgOrigCam(Rect(0,0,(WIDTH/4),(HEIGHT/4)));
 		//imshow("Cut down", imgOrig);
 		// Capture scaled-size YUV image for processing
-		cap->ReadFrame(2, imgBufferScaled, sizeof(imgBufferScaled));
+		cap->ReadFrame(downsampleLevels, imgBufferScaled, sizeof(imgBufferScaled));
+		mixChannels(&imgScaledCam, 1, arrayScaled, 2, channelList, 4);
 		//Mat imgScaledCam(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
-		Mat imgScaled(HEIGHT/imgScalingFactor, WIDTH/imgScalingFactor, CV_8UC4, (void *)imgBufferScaled);
+
 		//imshow("Scaled source", imgScaledCam);
 		//imgScaled = imgScaledCam(Rect(0,0,(WIDTH/(imgScalingFactor * 4)),(HEIGHT/(imgScalingFactor * 4))));
 
@@ -156,12 +181,12 @@ int main(int argc, char *argv[])
 		}
 		frameCounter++;
 		frameDisplayCounter++;
-		
+
 		// Convert to HSV
 		//cvtColor(imgScaled,imgHSV,CV_BGR2HSV);
 		//mixChannels(&imgScaled, imgHSV, ...
 		//imgHSV = imgScaled;
-		cvtColor(imgScaled,imgHSV,CV_RGB2HSV);
+		cvtColor(imgScaled,imgHSV,CV_BGR2HSV);
 
 		// *************************
 		// * Update to take just the Y channel?
@@ -169,8 +194,7 @@ int main(int argc, char *argv[])
 		// *************************
 
 		// Filter a redSign img
-		//inRange(imgHSV,Scalar(153,51,0),Scalar(179,255,255),imgRedFocussed);
-		inRange(imgHSV,Scalar(0,150,0),Scalar(255,255,255),imgRedFocussed);
+		inRange(imgHSV,Scalar(val1min,val2min,val3min),Scalar(val1max,val2max,val3max),imgRedFocussed);
 
 		// remove small artefacts
 		//erode(imgRedFocussed, imgRedFocussed, getStructuringElement(MORPH_ELLIPSE, Size(redErode,redErode)));
@@ -230,7 +254,7 @@ int main(int argc, char *argv[])
 			//cvtColor(imgObjectUnknown,imgFocussed,CV_RGB2HSV);
 
 			// Filter a redSign img
-			inRange(imgFocussed,Scalar(153,51,0),Scalar(179,255,255),imgFocussed);
+			inRange(imgFocussed,Scalar(val1min,val2min,val3min),Scalar(val1max,val2max,val3max),imgFocussed);
 
 			GaussianBlur(imgFocussed, imgFocussed, Size(5,5),2,2);
 			vector<Vec3f> circlesFocussed;
@@ -377,7 +401,7 @@ int main(int argc, char *argv[])
 		double secondsElapsed = difftime(end, start);
 		double fps = frameCounter/secondsElapsed;
 
-		if (fps > goalFPS){
+		if (fps > (goalFPS-5)){
 			waitKey(100);
 		}
 
